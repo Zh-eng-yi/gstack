@@ -1,5 +1,7 @@
 # Sources
 
+gstack is modified from [libmprompt](https://github.com/koka-lang/libmprompt) by Daan Leijen and KC Sivaramakrishnan
+
 There are two libraries provided:
 
 - `mprompt`: the primitive library that provides 
