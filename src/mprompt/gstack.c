@@ -515,10 +515,14 @@ static void mp_gstack_thread_init(void) {
 // test definition by zhengyi
 //---------------------------------------------------------------------------
 
-mp_gstack_t *zz_gstack = NULL;
+mp_gstack_t* zz_gstack = NULL;
 void zz_init() {
   if (zz_gstack != NULL) return;
   zz_gstack = mp_gstack_alloc(1, NULL);
+}
+
+mp_gstack_t* mp_gstack_get(char* stack) {
+  return mp_gpools_get_gstack((void*) stack);
 }
 
 
