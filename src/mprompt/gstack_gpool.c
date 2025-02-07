@@ -232,7 +232,7 @@ static mp_access_t mp_gpools_check_access(void* p, ssize_t* stack_size, ssize_t*
         if (block_ofs < (gp->block_size - gp->gap_size)) {  // not in a gap?
           ssize_t avail = (os_stack_grows_down ? block_ofs : gp->block_size - gp->gap_size - block_ofs);
           if (available != NULL) *available = avail;
-          if (g != NULL) *g = (mp_gstack_t*)((uint8_t*)p - block_ofs + gp->block_size - gp->gap_size + 8 * os_page_size);
+          if (g != NULL) *g = (mp_gstack_t*)((uint8_t*)p - block_ofs + gp->block_size - gp->gap_size);  // g is the gstack header at stack base.
           if (gpool != NULL) *gpool = gp;
           return MP_ACCESS;
         }
@@ -255,7 +255,7 @@ static mp_gstack_t* mp_gpools_get_gstack(void* p) {
       ptrdiff_t block_ofs = ofs % gp->block_size;
       ssize_t stack_size = gp->block_size - gp->gap_size;
       if (block_ofs <= stack_size) {  // p can point to the stack bottom or anywhere on the stack.
-        return (mp_gstack_t*)((uint8_t*)p - block_ofs + stack_size + 8 * os_page_size);
+        return (mp_gstack_t*)((uint8_t*)p - block_ofs + stack_size);  // return the gstack header at stack base.
       } else {
         return NULL;
       }

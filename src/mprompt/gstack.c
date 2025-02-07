@@ -223,8 +223,8 @@ mp_gstack_t* mp_gstack_alloc(ssize_t extra_size, void** extra)
 
     extra_size = mp_align_up(extra_size, sizeof(void*));
 
-    // allocate header in the gap at address stack base + 8 * page_size
-    uint8_t* page = stk + stk_size + 8 * os_page_size;
+    // allocate header in the gap at stack base
+    uint8_t* page = stk + stk_size;
     // make the page readable and writable
     if (!mp_os_mem_commit(page, os_page_size)) {
       mp_gstack_os_free(full, stk, stk_size, initial_commit);
