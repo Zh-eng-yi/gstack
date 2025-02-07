@@ -27,39 +27,6 @@
 
 
 //---------------------------------------------------------------------------
-// Multi-prompt interface
-//---------------------------------------------------------------------------
-
-// Types
-typedef struct mp_prompt_s   mp_prompt_t;     // resumable "prompts" (in-place growable stack chain)
-typedef struct mp_resume_s   mp_resume_t;     // abstract resumption
-
-// Function types
-typedef void* (mp_start_fun_t)(mp_prompt_t*, void* arg); 
-typedef void* (mp_yield_fun_t)(mp_resume_t*, void* arg);  
-
-// Continue with `fun(p,arg)` under a fresh prompt `p`.
-mp_decl_export void* mp_prompt(mp_start_fun_t* fun, void* arg); 
-
-// Yield back up to a parent prompt `p` and run `fun(r,arg)` from there, where `r` is a `mp_resume_t` resumption.
-mp_decl_export void* mp_yield(mp_prompt_t* p, mp_yield_fun_t* fun, void* arg);
-
-// Resume back to the yield point with a result; can be used at most once.
-mp_decl_export void* mp_resume(mp_resume_t* resume, void* arg);      // resume 
-mp_decl_export void* mp_resume_tail(mp_resume_t* resume, void* arg); // resume as the last action in a `mp_yield_fun_t`
-mp_decl_export void  mp_resume_drop(mp_resume_t* resume);            // drop the resume object without resuming
-
-
-//---------------------------------------------------------------------------
-// Multi-shot resumptions; use with care in combination with linear resources.
-//---------------------------------------------------------------------------
-
-mp_decl_export mp_resume_t* mp_resume_multi(mp_resume_t* r);  // consume a resumption and return one that can be invoked multiple times
-mp_decl_export mp_resume_t* mp_resume_dup(mp_resume_t* r);    // only multi-resumptions can be dup'd
-
-
-
-//---------------------------------------------------------------------------
 // Initialization
 //---------------------------------------------------------------------------
 #include <stddef.h>
@@ -82,30 +49,7 @@ typedef struct mp_config_s {
 // Initialize with `config`; use NULL for default settings.
 // Call at most once from the main thread before using any other functions. 
 // Use as: `mp_config_t config = mp_config_default(); config.<setting> = <N>; mp_init(&config);`.
-mp_decl_export void        mp_init(const mp_config_t* config);
 mp_decl_export mp_config_t mp_config_default(void);  // default configuration for this platform
-
-
-
-//---------------------------------------------------------------------------
-// Low-level access  
-// (only `mp_mresume_should_unwind` is required by `libmphandler`)
-//---------------------------------------------------------------------------
-
-// Get a portable backtrace
-mp_decl_export int          mp_backtrace(void** backtrace, int len);
-
-// How often is this resumption resumed?
-mp_decl_export long         mp_resume_resume_count(mp_resume_t* r);
-mp_decl_export int          mp_resume_should_unwind(mp_resume_t* r);  // refcount==1 && resume_count==0
-
-// Separate prompt creation
-mp_decl_export mp_prompt_t* mp_prompt_create(void);
-mp_decl_export void* mp_prompt_enter(mp_prompt_t* p, mp_start_fun_t* fun, void* arg) ;
-
-// Walk the chain of prompts.
-mp_decl_export mp_prompt_t* mp_prompt_top(void);
-mp_decl_export mp_prompt_t* mp_prompt_parent(mp_prompt_t* p);
 
 
 #endif
