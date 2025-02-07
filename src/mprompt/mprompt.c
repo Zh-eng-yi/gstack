@@ -15,6 +15,4 @@ mp_gstack_t* mp_gstack_current(void) {
   // mp_prompt_t* top = mp_prompt_top();
   // return (top != NULL ? top->gstack : NULL);
   return NULL;
-  // if (zz_gstack == NULL) zz_gstack = mp_gstack_alloc(0, NULL);
-  // return zz_gstack;
 }

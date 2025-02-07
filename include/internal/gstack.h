@@ -12,24 +12,18 @@
    NB: Try to fix dependency issues
 ------------------------------------------------------------------------------*/
 #include "../mprompt.h"
-#include "longjmp.h"
+#include "util.h"
 
 /*------------------------------------------------------------------------------
    Internal API for in-place growable gstacks
 ------------------------------------------------------------------------------*/
 typedef struct mp_gstack_s mp_gstack_t;
-typedef struct mp_gsave_s  mp_gsave_t;
 
 bool         mp_gstack_init(const mp_config_t* config); // normally called automatically
 void         mp_gstack_clear_cache(void);               // clear thread-local cache of gstacks (called automatically on thread termination)
 
 mp_gstack_t* mp_gstack_alloc(ssize_t extra_size, void** extra); 
 void         mp_gstack_free(mp_gstack_t* gstack, bool delay);
-void         mp_gstack_enter(mp_gstack_t* g, mp_jmpbuf_t** return_jmp, mp_stack_start_fun_t* fun, void* arg);
-
-mp_gsave_t*  mp_gstack_save(mp_gstack_t* gstack, uint8_t* sp);    // save up to the given stack pointer (that should be in `gstack`)
-void         mp_gsave_restore(mp_gsave_t* gsave);
-void         mp_gsave_free(mp_gsave_t* gsave);
 
 mp_gstack_t* mp_gstack_current(void);             // implemented in <mprompt.c>
 
@@ -50,12 +44,7 @@ struct mp_gstack_s {
   uint8_t       extra[1];           // extra allocated (holds the mp_prompt_t structure)
 };
 
-//---------------------------------------------------------------------------
-// test definition by zhengyi
-//---------------------------------------------------------------------------
-
-extern mp_gstack_t* zz_gstack;
-void zz_init();
+// get gstack header from raw stack
 mp_gstack_t* mp_gstack_get(char* stack);
 
 

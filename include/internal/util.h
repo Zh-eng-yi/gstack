@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <stdlib.h>     // malloc
 #include <sys/types.h>  // ssize_t  
+#include <errno.h>      // ENOMEM
 
 #if (defined(_MSC_VER) || defined(__MINGW32__)) && !defined(__ssize_t_defined)
 #define __ssize_t_defined

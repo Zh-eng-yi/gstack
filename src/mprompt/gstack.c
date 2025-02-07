@@ -14,7 +14,6 @@
 #include <errno.h>
 #include "mprompt.h"
 #include "internal/util.h"
-#include "internal/longjmp.h"       // mp_stack_enter
 #include "internal/gstack.h"
 
 #ifdef __cplusplus
@@ -262,27 +261,6 @@ mp_gstack_t* mp_gstack_alloc(ssize_t extra_size, void** extra)
 }
 
 
-// Enter a gstack
-void mp_gstack_enter(mp_gstack_t* g, mp_jmpbuf_t** return_jmp, mp_stack_start_fun_t* fun, void* arg) {
-  uint8_t* base = mp_gstack_base(g);
-  uint8_t* base_commit_limit = mp_push(base, g->committed, NULL);
-  uint8_t* base_limit = mp_push(base, g->stack_size, NULL);
-  uint8_t* base_entry_sp = base;
-#if _WIN32
-  if (os_use_gpools || os_gstack_grow_fast) {
-    // set an artificially low stack limit so our page fault handler gets called and we can:
-    // - prevent guard pages from growing into a gap in gpools
-    // - keep track of the committed area and grow by doubling to improve performance.
-    ULONG guaranteed = 0;
-    SetThreadStackGuarantee(&guaranteed);
-    ssize_t guard_size = os_page_size + mp_align_up(guaranteed, os_page_size);
-    base_limit = mp_push(base_commit_limit, guard_size, NULL);
-  }
-#endif
-  mp_stack_enter(base_entry_sp, base_commit_limit, base_limit, return_jmp, fun, arg);  
-}
-
-
 // Free a gstack
 void mp_gstack_free(mp_gstack_t* g, bool delay) {
   if (g == NULL) return;
@@ -344,34 +322,6 @@ struct mp_gsave_s {
 #if MP_USE_ASAN
 __attribute__((no_sanitize("address")))
 #endif
-mp_gsave_t* mp_gstack_save(mp_gstack_t* g, uint8_t* sp) {
-  mp_assert_internal(mp_gstack_contains(g, sp));
-  ssize_t stack_size = mp_unpush(sp, g->stack, g->stack_size);
-  mp_assert_internal(stack_size >= 0 && stack_size <= g->stack_size);
-  mp_gsave_t* gs = (mp_gsave_t*)mp_malloc_safe(sizeof(mp_gsave_t) - 1 + stack_size + g->extra_size);
-  gs->stack = (os_stack_grows_down ? sp : g->stack);
-  gs->stack_size = stack_size;
-  gs->extra = &g->extra[0];
-  gs->extra_size = g->extra_size;
-  #if MP_USE_ASAN
-    for(ssize_t i = 0; i < gs->extra_size; i++) { gs->data[i] = ((uint8_t*)gs->extra)[i]; }
-    for(ssize_t i = 0; i < gs->stack_size; i++) { gs->data[i + gs->extra_size] = ((uint8_t*)gs->stack)[i]; }
-  #else
-    memcpy(gs->data, gs->extra, gs->extra_size);
-    memcpy(gs->data + gs->extra_size, gs->stack, gs->stack_size);
-  #endif
-  return gs;
-}
-
-void mp_gsave_restore(mp_gsave_t* gs) {
-  memcpy(gs->extra, gs->data, gs->extra_size);
-  memcpy(gs->stack, gs->data + gs->extra_size, gs->stack_size);
-}
-
-void mp_gsave_free(mp_gsave_t* gs) {
-  mp_free(gs);
-}
-
 
 //----------------------------------------------------------------------------------
 // Is an address located in a gstack?
@@ -510,16 +460,6 @@ static void mp_gstack_thread_init(void) {
   mp_gstack_os_thread_init();  
 }
 
-
-//---------------------------------------------------------------------------
-// test definition by zhengyi
-//---------------------------------------------------------------------------
-
-mp_gstack_t* zz_gstack = NULL;
-void zz_init() {
-  if (zz_gstack != NULL) return;
-  zz_gstack = mp_gstack_alloc(1, NULL);
-}
 
 mp_gstack_t* mp_gstack_get(char* stack) {
   return mp_gpools_get_gstack((void*) stack);
